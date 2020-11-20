@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "debug.h"
 #include "clks.h"
 #include <string.h>
+#include "debounce.h"
 
 matrix_row_t mlatest[MATRIX_ROWS];
 matrix_row_t mlast[MATRIX_ROWS];
@@ -95,7 +96,7 @@ uint8_t matrix_scan(void)
     {
         PORT->Group[col_ports[col]].OUTSET.reg = 1 << col_pins[col]; //Set col output
 
-        wait_us(35); //Delay for output
+        wait_us(1); //Delay for output
 
         scans[PA] = PORT->Group[PA].IN.reg & row_masks[PA]; //Read PA row pins data
         scans[PB] = PORT->Group[PB].IN.reg & row_masks[PB]; //Read PB row pins data
@@ -119,17 +120,19 @@ uint8_t matrix_scan(void)
         mlast[row] = mlatest[row];
     }
 
-    if (!mchanged)
-    {
-        for (row = 0; row < MATRIX_ROWS; row++)
-            mdebounced[row] = mlatest[row];
-        mdebouncing = 0;
-    }
-    else
-    {
-        //Begin or extend debounce on change
-        mdebouncing = timer_read64() + DEBOUNCE;
-    }
+    debounce(mlatest, mdebounced, MATRIX_ROWS, mchanged);
+
+    // if (!mchanged)
+    // {
+    //     for (row = 0; row < MATRIX_ROWS; row++)
+    //         mdebounced[row] = mlatest[row];
+    //     mdebouncing = 0;
+    // }
+    // else
+    // {
+    //     //Begin or extend debounce on change
+    //     mdebouncing = timer_read64() + DEBOUNCE;
+    // }
 
     matrix_scan_quantum();
 
